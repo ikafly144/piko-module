@@ -8,7 +8,9 @@ rv-brand = "Piko"
 build-mode = "module"
 version = "auto"
 include-stock = "split"
+included-patches = "'Bring back twitter'"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter/"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.twitter.android"
+
 
