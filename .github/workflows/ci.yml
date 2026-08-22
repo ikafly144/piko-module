@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Python
+        run: pip install --no-cache-dir cloudscraper beautifulsoup4
+
       - name: Should build?
         id: should_build
         shell: bash

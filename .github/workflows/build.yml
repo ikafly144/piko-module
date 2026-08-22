@@ -25,6 +25,9 @@ jobs:
           fetch-depth: 0
           submodules: true
 
+      - name: Set up Python
+        run: pip install --no-cache-dir cloudscraper beautifulsoup4
+
       - name: Update config
         if: ${{ inputs.from_ci }}
         run: |

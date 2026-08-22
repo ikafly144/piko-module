@@ -413,6 +413,21 @@ dl_apkmirror() {
 		return 0
 	fi
 
+	if [ -f "download_apkmirror.py" ]; then
+		local pycmd="python3"
+		if ! command -v python3 >/dev/null 2>&1; then pycmd="python"; fi
+		if $pycmd -c "import cloudscraper, bs4" 2>/dev/null; then
+			pr "Using Python APKMirror downloader"
+			if $pycmd download_apkmirror.py "$url" "$version" "$output" "$arch" "$dpi"; then
+				if [ -f "${output}.apkm" ]; then
+					merge_splits "${output}.apkm" "${output}"
+				fi
+				return 0
+			fi
+			epr "Python APKMirror downloader failed, trying fallback"
+		fi
+	fi
+
 	if [ "$arch" = "arm-v7a" ]; then arch="armeabi-v7a"; fi
 	local resp node app_table apkmname dlurl=""
 	apkmname=$($HTMLQ "h1.marginZero" --text <<<"$__APKMIRROR_RESP__")
@@ -443,8 +458,15 @@ dl_apkmirror() {
 	fi
 }
 get_apkmirror_vers() {
+	if [ -f "download_apkmirror.py" ]; then
+		local pycmd="python3"
+		if ! command -v python3 >/dev/null 2>&1; then pycmd="python"; fi
+		if $pycmd -c "import cloudscraper, bs4" 2>/dev/null; then
+			$pycmd download_apkmirror.py --versions "${__APKMIRROR_URL__}" && return
+		fi
+	fi
 	local vers apkm_resp
-	apkm_resp=$(req "https://www.apkmirror.com/uploads/?appcategory=${__APKMIRROR_CAT__}" -)
+	apkm_resp=$(req "https://www.apkmirror.com/uploads/?appcategory=${__APKMIRROR_CAT__}" -) || return 1
 	vers=$(sed -n 's;.*Version:</span><span class="infoSlide-value">\(.*\) </span>.*;\1;p' <<<"$apkm_resp" | awk '{$1=$1}1')
 
 	vers=$(grep -iv "\(beta\|alpha\)" <<<"$vers")
@@ -455,10 +477,24 @@ get_apkmirror_vers() {
 	done
 	echo "${r_vers[*]}"
 }
-get_apkmirror_pkg_name() { sed -n 's;.*id=\(.*\)" class="accent_color.*;\1;p' <<<"$__APKMIRROR_RESP__"; }
+get_apkmirror_pkg_name() {
+	if [ -n "${__APKMIRROR_PKG_NAME__-}" ]; then echo "$__APKMIRROR_PKG_NAME__"; return; fi
+	sed -n 's;.*id=\(.*\)" class="accent_color.*;\1;p' <<<"$__APKMIRROR_RESP__"
+}
 get_apkmirror_resp() {
-	__APKMIRROR_RESP__=$(req "${1}" -) || return 1
+	__APKMIRROR_URL__="$1"
 	__APKMIRROR_CAT__="${1##*/}"
+	if [ -f "download_apkmirror.py" ]; then
+		local pycmd="python3"
+		if ! command -v python3 >/dev/null 2>&1; then pycmd="python"; fi
+		if $pycmd -c "import cloudscraper, bs4" 2>/dev/null; then
+			if pkg=$($pycmd download_apkmirror.py --pkg-name "$1" 2>/dev/null); then
+				__APKMIRROR_PKG_NAME__="$pkg"
+				return 0
+			fi
+		fi
+	fi
+	__APKMIRROR_RESP__=$(req "${1}" -) || return 1
 }
 
 # -------------------- uptodown --------------------
