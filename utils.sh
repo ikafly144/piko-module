@@ -300,8 +300,16 @@ get_patch_last_supported_ver() {
 		else
 			abort "No patches found for '$pkg_name' in patches '$patches_jar'"
 		fi
+	local filtered_op
+	filtered_op=$(grep -F "($pcount patch" <<<"$op" | sed 's/ (.* patch.*//')
+	if [ "$is_experimental" != "true" ]; then
+		local stable_op
+		stable_op=$(grep -iv "\(alpha\|beta\)" <<<"$filtered_op" || :)
+		if [ -n "$stable_op" ]; then
+			filtered_op="$stable_op"
+		fi
 	fi
-	grep -F "($pcount patch" <<<"$op" | sed 's/ (.* patch.*//' | get_highest_ver || return 1
+	get_highest_ver <<<"$filtered_op" || return 1
 }
 
 patches_list_versions() {

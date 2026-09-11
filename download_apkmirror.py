@@ -52,10 +52,10 @@ def find_version_page(scraper, base_url: str, version: str):
     v_slug = sanitize_version(version)
     
     candidates = [
-        f"{base_url.rstrip('/')}/{app_slug}-{v_slug}-release/",
         f"{base_url.rstrip('/')}/x-{v_slug}-release/",
-        f"{base_url.rstrip('/')}/{app_slug}-{v_slug}/",
         f"{base_url.rstrip('/')}/x-{v_slug}/",
+        f"{base_url.rstrip('/')}/{app_slug}-{v_slug}-release/",
+        f"{base_url.rstrip('/')}/{app_slug}-{v_slug}/",
     ]
     for url in candidates:
         try:
@@ -69,8 +69,9 @@ def find_version_page(scraper, base_url: str, version: str):
     if r.status_code == 200:
         soup = BeautifulSoup(r.content, "html.parser")
         for a in soup.find_all("a", href=True):
-            if v_slug in a["href"].lower() and "apk-download" not in a["href"]:
-                full_url = "https://www.apkmirror.com" + a["href"] if a["href"].startswith("/") else a["href"]
+            href = a["href"]
+            if v_slug in href.lower() and "apk-download" not in href and "variant-" not in href:
+                full_url = "https://www.apkmirror.com" + href if href.startswith("/") else href
                 r2 = scraper.get(full_url)
                 if r2.status_code == 200:
                     return full_url, r2
@@ -114,7 +115,7 @@ def download_apkmirror(base_url: str, version: str, output: str, arch: str = "al
         is_bundle = bool(badge and badge.text.strip().upper() == "BUNDLE")
         
         link_el = row.find("a", {"class": "accent_color"})
-        if not link_el or not link_el.get("href"):
+        if not link_el or not link_el.get("href") or "variant-" in link_el.get("href", ""):
             continue
         
         variant_arch = "universal"
