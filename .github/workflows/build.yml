@@ -9,8 +9,31 @@ on:
 
   workflow_dispatch:
     inputs:
+      target:
+        description: "Patch variant to build"
+        type: choice
+        options:
+          - all
+          - piko
+          - piko-newx
+        default: all
+      twitter_version:
+        description: "Twitter APK version (e.g. 'auto', '12.19.1-release.0', '12.25.0-prod.01')"
+        type: string
+        required: false
+        default: "auto"
+      patches_version:
+        description: "Patches release version (e.g. 'latest', 'v3.9.0', 'v3.19.1')"
+        type: string
+        required: false
+        default: "latest"
+      included_patches:
+        description: "Custom included patches to apply (optional, e.g. 'Bring back twitter')"
+        type: string
+        required: false
+        default: ""
       force_all:
-        description: "Force build all modules regardless of updates"
+        description: "Force build regardless of update checks"
         type: boolean
         default: false
 
@@ -33,8 +56,25 @@ jobs:
       - name: Set up Python
         run: pip install --no-cache-dir cloudscraper beautifulsoup4
 
+      - name: Apply custom inputs
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          python3 configure_build.py \
+            --target "${{ inputs.target || 'all' }}" \
+            --twitter-version "${{ inputs.twitter_version || 'auto' }}" \
+            --patches-version "${{ inputs.patches_version || 'latest' }}" \
+            --included-patches "${{ inputs.included_patches || '' }}"
+          
+          if [ "${{ inputs.target }}" != "all" ] || \
+             [ -n "${{ inputs.twitter_version }}" -a "${{ inputs.twitter_version }}" != "auto" ] || \
+             [ -n "${{ inputs.patches_version }}" -a "${{ inputs.patches_version }}" != "latest" ] || \
+             [ -n "${{ inputs.included_patches }}" ] || \
+             [ "${{ inputs.force_all }}" = "true" ]; then
+            echo "FORCE_BUILD=true" >> "$GITHUB_ENV"
+          fi
+
       - name: Update config
-        if: ${{ !inputs.force_all }}
+        if: ${{ env.FORCE_BUILD != 'true' }}
         run: |
           if git checkout origin/update build.md; then
             UPDATE_CFG=$(./build.sh config.toml --config-update)
