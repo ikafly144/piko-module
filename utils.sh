@@ -300,6 +300,7 @@ get_patch_last_supported_ver() {
 		else
 			abort "No patches found for '$pkg_name' in patches '$patches_jar'"
 		fi
+	fi
 	local filtered_op
 	filtered_op=$(grep -F "($pcount patch" <<<"$op" | sed 's/ (.* patch.*//')
 	if [ "$is_experimental" != "true" ]; then
