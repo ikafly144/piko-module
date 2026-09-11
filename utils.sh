@@ -286,6 +286,13 @@ get_patch_last_supported_ver() {
 		done <<<"$(list_args "$inc_sel")"
 		vers=$(awk '{$1=$1}1' <<<"$vers")
 		if [ "$vers" ]; then
+			if [ "$is_experimental" != "true" ]; then
+				local stable_vers
+				stable_vers=$(grep -iv "\(alpha\|beta\)" <<<"$vers" || :)
+				if [ -n "$stable_vers" ]; then
+					vers="$stable_vers"
+				fi
+			fi
 			get_highest_ver <<<"$vers"
 			return
 		fi
@@ -442,7 +449,7 @@ dl_apkmirror() {
 
 	if [ "$arch" = "arm-v7a" ]; then arch="armeabi-v7a"; fi
 	local resp node app_table apkmname dlurl=""
-	apkmname=$($HTMLQ "h1.marginZero" --text <<<"$__APKMIRROR_RESP__")
+	apkmname=$($HTMLQ "h1.marginZero" --text <<<"${__APKMIRROR_RESP__-}")
 	apkmname="${apkmname,,}" apkmname="${apkmname// /-}" apkmname="${apkmname//[^a-z0-9-]/}"
 	url="${url}/${apkmname}-${version//./-}-release/"
 	resp=$(req "$url" -) || return 1
