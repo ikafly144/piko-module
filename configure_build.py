@@ -85,6 +85,8 @@ def main():
         # Included patches override
         if args.included_patches and args.included_patches.strip():
             inc = args.included_patches.strip()
+            if not ((inc.startswith("'") and inc.endswith("'")) or (inc.startswith('"') and inc.endswith('"'))):
+                inc = f"'{inc}'"
             new_lines = []
             replaced = False
             for l in sec_lines:
