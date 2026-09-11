@@ -1,4 +1,5 @@
 Twitter: 12.19.1-release.0  
+Twitter-NewX: 12.25.0-prod.01  
 
 [crimera/piko](https://github.com/crimera/piko) | [crimera/piko-newx](https://github.com/crimera/piko-newx)
   
