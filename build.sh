@@ -158,7 +158,7 @@ done
 wait
 _clean_tmp
 if [ -z "$(ls -A1 "${BUILD_DIR}")" ]; then abort "All builds failed."; fi
-log "\n[crimera/piko](https://github.com/crimera/piko)\n"
+log "\n[crimera/piko](https://github.com/crimera/piko) | [crimera/piko-newx](https://github.com/crimera/piko-newx)\n"
 log "$(cat "$TEMP_DIR"/*/changelog.md 2>/dev/null || :)"
 
 SKIPPED=$(cat "$TEMP_DIR"/skipped 2>/dev/null || :)
