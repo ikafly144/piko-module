@@ -195,23 +195,40 @@ config_update() {
 		else
 			sources["$PATCHES_SRC/$PATCHES_VER"]=0
 			local rv_rel="https://api.github.com/repos/${PATCHES_SRC}/releases"
+			local last_patches_resp
 			if [ "$PATCHES_VER" = "dev" ]; then
-				last_patches=$(gh_req "$rv_rel" - | jq -e -r '.[0]') || continue
+				last_patches_resp=$(gh_req "$rv_rel" - | jq -e -r '.[0]') || continue
 			elif [ "$PATCHES_VER" = "latest" ]; then
-				last_patches=$(gh_req "$rv_rel/latest" -) || continue
+				last_patches_resp=$(gh_req "$rv_rel/latest" -) || continue
 			else
-				last_patches=$(gh_req "$rv_rel/tags/${PATCHES_VER}" -) || continue
+				last_patches_resp=$(gh_req "$rv_rel/tags/${PATCHES_VER}" -) || continue
 			fi
-			if ! last_patches=$(jq -e -r '.assets[] | select(.name | (endswith("asc") or endswith("json")) | not) | .name' <<<"$last_patches"); then
-				abort "config_update error: '$last_patches'"
+			local tag_name
+			tag_name=$(jq -r '.tag_name' <<<"$last_patches_resp" 2>/dev/null || :)
+			local last_patches
+			last_patches=$(jq -e -r '.assets[] | select(.name | (endswith("asc") or endswith("json")) | not) | .name' <<<"$last_patches_resp" 2>/dev/null || :)
+
+			local is_updated=false
+			if [ -n "$tag_name" ] && [ "$tag_name" != "null" ]; then
+				if ! grep -Fq "github.com/${PATCHES_SRC}/releases/tag/${tag_name}" build.md; then
+					is_updated=true
+				fi
+			elif [ -n "$last_patches" ]; then
+				if ! grep -Fq "$last_patches" build.md; then
+					is_updated=true
+				fi
 			fi
-			if [ "$last_patches" ]; then
-				if ! OP=$(grep "^Patches: ${PATCHES_SRC%%/*}/" build.md | grep -m1 "$last_patches"); then
-					sources["$PATCHES_SRC/$PATCHES_VER"]=1
-					prcfg=true
-					upped+=("$table_name")
-				else
-					echo "$OP" >>"$TEMP_DIR"/skipped
+
+			if [ "$is_updated" = true ]; then
+				sources["$PATCHES_SRC/$PATCHES_VER"]=1
+				prcfg=true
+				upped+=("$table_name")
+			else
+				if [ -n "$tag_name" ] && [ "$tag_name" != "null" ]; then
+					echo "Patches: ${PATCHES_SRC} (${tag_name})" >>"$TEMP_DIR"/skipped
+					echo "[Changelog](https://github.com/${PATCHES_SRC}/releases/tag/${tag_name})" >>"$TEMP_DIR"/skipped
+				elif [ -n "$last_patches" ]; then
+					echo "Patches: ${PATCHES_SRC} (${last_patches})" >>"$TEMP_DIR"/skipped
 				fi
 			fi
 		fi
