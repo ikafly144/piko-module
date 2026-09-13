@@ -75,12 +75,16 @@ install() {
 	settings put global package_verifier_enable 0
 
 	SZ=$(stat -c "%s" "$MODPATH"/stock/*.apk | awk '{sum += $0} END {print sum}')
-	for IT in 1 2; do
-		ui_print "* Updating $PKG_NAME to $PKG_VER"
-		if ! SES=$(pmex install-create --user 0 -i com.android.vending -r -S "$SZ"); then
-			ui_print "ERROR: install-create failed"
-			install_err="$SES"
-			break
+	for IT in 1 2 3; do
+		ui_print "* Updating $PKG_NAME to $PKG_VER (attempt $IT)"
+		local create_args="--user 0 -i com.android.vending -r -d -S $SZ"
+		if ! SES=$(pmex install-create $create_args 2>&1); then
+			create_args="--user 0 -i com.android.vending -r -S $SZ"
+			if ! SES=$(pmex install-create $create_args 2>&1); then
+				ui_print "ERROR: install-create failed: $SES"
+				install_err="$SES"
+				break
+			fi
 		fi
 		SES=${SES#*[} SES=${SES%]*}
 
@@ -94,24 +98,30 @@ install() {
 		done
 		if [ "$install_err" ]; then break; fi
 
-		if ! op=$(pmex install-commit "$SES"); then
+		if ! op=$(pmex install-commit "$SES" 2>&1); then
 			ui_print "$op"
 			if echo "$op" | grep -q -e INSTALL_FAILED_VERSION_DOWNGRADE -e INSTALL_FAILED_UPDATE_INCOMPATIBLE -e INSTALL_FAILED_DUPLICATE; then
-				ex_unins_arg=""
-				if echo "$op" | grep -q INSTALL_FAILED_DUPLICATE; then
-					ui_print "* Uninstalling without data loss..."
-					ex_unins_arg="-k"
-				else
-					ui_print "* Uninstalling..."
-				fi
-				if ! op=$(pmex uninstall --user 0 $ex_unins_arg "$PKG_NAME"); then
-					ui_print "$op"
-					if [ $IT = 2 ]; then
+				if [ $IT -eq 1 ]; then
+					ui_print "* Downgrade or signature mismatch detected."
+					ui_print "* Attempting uninstall with data preservation (-k)..."
+					if ! un_op=$(pmex uninstall --user 0 -k "$PKG_NAME" 2>&1); then
+						ui_print "  $un_op"
+						ui_print "* Uninstall with -k failed. Falling back to clean uninstall..."
+						pmex uninstall --user 0 "$PKG_NAME" >/dev/null 2>&1 || :
+					fi
+					continue
+				elif [ $IT -eq 2 ]; then
+					ui_print "* Package still incompatible. Performing clean uninstall..."
+					if ! un_op=$(pmex uninstall --user 0 "$PKG_NAME" 2>&1); then
+						ui_print "ERROR: pm uninstall failed: $un_op"
 						install_err="ERROR: pm uninstall failed."
 						break
 					fi
+					continue
+				else
+					install_err="ERROR: install-commit failed after uninstallation: $op"
+					break
 				fi
-				continue
 			fi
 			ui_print "ERROR: install-commit failed"
 			install_err="$op"

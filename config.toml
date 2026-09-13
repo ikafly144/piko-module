@@ -11,7 +11,6 @@ include-stock = "split"
 included-patches = "'Bring back twitter'"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter/"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
-archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.twitter.android"
 
 [Twitter-NewX]
 app-name = "Twitter"
@@ -25,7 +24,6 @@ include-stock = "split"
 included-patches = "'NewX: Restore Twitter branding'"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter/"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
-archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.twitter.android"
 
 
 
