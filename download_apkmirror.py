@@ -122,36 +122,95 @@ def download_apkmirror(base_url: str, version: str, output: str, arch: str = "al
         if len(cells) > 1:
             variant_arch = cells[1].get_text(strip=True).lower()
         
+        variant_min_ver = ""
+        if len(cells) > 2:
+            variant_min_ver = cells[2].get_text(strip=True)
+            
+        variant_dpi = ""
+        if len(cells) > 3:
+            variant_dpi = cells[3].get_text(strip=True).lower()
+        
         href = link_el["href"]
         variant_url = "https://www.apkmirror.com" + href if href.startswith("/") else href
         variants.append({
             "is_bundle": is_bundle,
             "url": variant_url,
-            "arch": variant_arch
+            "arch": variant_arch,
+            "min_ver": variant_min_ver,
+            "dpi": variant_dpi
         })
     
     if not variants:
         raise Exception(f"No variants found for {version}")
     
-    selected = None
     target_arch = arch.lower() if arch else "all"
-    
+    target_dpi = dpi.lower() if dpi else ""
+
+    def score_variant(v) -> int:
+        v_arch = v["arch"].lower()
+        base = 1000 if v["is_bundle"] else 0
+        
+        arch_score = 0
+        if target_arch in ("all", "both"):
+            # For modern devices (Magisk/KernelSU), 64-bit ARM is essential.
+            # 1. Dual-arch (arm64-v8a + armeabi-v7a) is the best choice for 'all'
+            if "arm64-v8a" in v_arch and ("armeabi-v7a" in v_arch or "arm-v7a" in v_arch):
+                arch_score = 600
+            # 2. arm64-v8a only is the next best
+            elif "arm64-v8a" in v_arch:
+                arch_score = 500
+            # 3. Universal / noarch
+            elif "universal" in v_arch or "noarch" in v_arch:
+                arch_score = 400
+            # 4. armeabi-v7a only is lowest priority (32-bit only fails on 64-bit-only devices)
+            elif "armeabi-v7a" in v_arch or "arm-v7a" in v_arch:
+                arch_score = 50
+            else:
+                arch_score = 10
+        elif target_arch in ("arm64-v8a", "arm64"):
+            if "arm64-v8a" in v_arch:
+                arch_score = 600 if "armeabi-v7a" not in v_arch else 550
+            elif "universal" in v_arch or "noarch" in v_arch:
+                arch_score = 400
+            else:
+                return -1
+        elif target_arch in ("arm-v7a", "armeabi-v7a", "arm"):
+            if "armeabi-v7a" in v_arch or "arm-v7a" in v_arch:
+                arch_score = 600
+            elif "universal" in v_arch or "noarch" in v_arch:
+                arch_score = 400
+            else:
+                return -1
+        else:
+            if target_arch in v_arch:
+                arch_score = 500
+            elif "universal" in v_arch or "noarch" in v_arch:
+                arch_score = 300
+            else:
+                return -1
+
+        dpi_score = 0
+        v_dpi_val = v.get("dpi", "").lower()
+        if target_dpi and target_dpi in v_dpi_val:
+            dpi_score = 100
+        elif "nodpi" in v_dpi_val or "anydpi" in v_dpi_val:
+            dpi_score = 30
+
+        return base + arch_score + dpi_score
+
+    scored_variants = []
     for v in variants:
-        if v["is_bundle"]:
-            if target_arch in ("all", "both") or target_arch in v["arch"] or "universal" in v["arch"]:
-                selected = v
-                break
-    
-    if not selected:
-        for v in variants:
-            if target_arch in ("all", "both") or target_arch in v["arch"] or "universal" in v["arch"]:
-                selected = v
-                break
-                
-    if not selected:
+        score = score_variant(v)
+        if score >= 0:
+            scored_variants.append((score, v))
+
+    if scored_variants:
+        scored_variants.sort(key=lambda x: x[0], reverse=True)
+        selected = scored_variants[0][1]
+    else:
         selected = variants[0]
         
-    print(f"Selected variant (bundle={selected['is_bundle']}, arch={selected['arch']}): {selected['url']}", file=sys.stderr)
+    print(f"Selected variant (bundle={selected['is_bundle']}, arch={selected['arch']}, dpi={selected.get('dpi', '')}): {selected['url']}", file=sys.stderr)
     
     r_variant = scraper.get(selected["url"])
     if r_variant.status_code != 200:

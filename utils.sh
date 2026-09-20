@@ -410,9 +410,9 @@ apkmirror_search() {
 	local resp="$1" dpi="$2" arch="$3" apk_bundle="$4"
 	local dlurl="" node app_table emptyCheck
 
-	local apparch=('universal' 'noarch' 'arm64-v8a + armeabi-v7a')
+	local apparch=('arm64-v8a + armeabi-v7a' 'arm64-v8a' 'universal' 'noarch')
 	if [ "$arch" != "all" ]; then
-		apparch+=("$arch")
+		apparch=("$arch")
 	fi
 
 	local appdpi=("nodpi" "anydpi")
@@ -893,6 +893,11 @@ build_rv() {
 						unzip -j "${stock_apk}.apkm" '*.apk' -x '*x86.apk' -x '*arm64_v8a.apk' -x '*armeabi_v7a.apk' -d "${base_template}/stock/" >/dev/null 2>&1
 					else
 						unzip -j "${stock_apk}.apkm" '*.apk' -x '*x86_64.apk' -x '*x86.apk' -d "${base_template}/stock/" >/dev/null 2>&1
+					fi
+					if [ "$arch" = "all" ] || [ "$arch" = "arm64-v8a" ]; then
+						if ! ls "${base_template}/stock/"*arm64* >/dev/null 2>&1; then
+							wpr "WARNING: No arm64 native library split found in stock APK bundle for ${table}!"
+						fi
 					fi
 				fi
 			fi
