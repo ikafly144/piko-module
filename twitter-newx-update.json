@@ -1,6 +1,6 @@
 {
-  "version": "v12.37.2-prod.01 (patches 3.64.1.mpp)",
-  "versionCode": 45,
-  "zipUrl": "https://github.com/ikafly144/piko-module/releases/download/45/twitter-piko-newx-module-v12.37.2-prod.01-all.zip",
+  "version": "v12.38.1-prod.01 (patches 3.72.3.mpp)",
+  "versionCode": 46,
+  "zipUrl": "https://github.com/ikafly144/piko-module/releases/download/46/twitter-piko-newx-module-v12.38.1-prod.01-all.zip",
   "changelog": "https://raw.githubusercontent.com/ikafly144/piko-module/update/build.md"
 }

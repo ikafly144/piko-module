@@ -1,11 +1,11 @@
-Twitter-NewX: 12.37.2-prod.01  
+Twitter-NewX: 12.38.1-prod.01  
 
 [crimera/piko](https://github.com/crimera/piko) | [crimera/piko-newx](https://github.com/crimera/piko-newx)
   
-Patches: crimera/patches-3.64.1.mpp  
-[Changelog](https://github.com/crimera/piko-newx/releases/tag/v3.64.1)
+Patches: crimera/patches-3.72.3.mpp  
+[Changelog](https://github.com/crimera/piko-newx/releases/tag/v3.72.3)
 
-CLI: MorpheApp/morphe-desktop-1.19.1-all.jar    
+CLI: MorpheApp/morphe-desktop-1.20.0-all.jar    
 
 Skipped:  
 Patches: crimera/piko (v3.10.0)
